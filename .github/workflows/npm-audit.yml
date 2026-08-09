@@ -7,6 +7,11 @@ jobs:
   audit:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,29 +24,45 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
-        run: |
-          npm audit --json > results.json || true
+      - name: Run NPM Audit Action
+        id: npm_audit
+        uses: oke-py/npm-audit-action@v5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          json_flag: true
+          fail_on_vulnerabilities: false
+          create_issues: false
+          create_pr_comments: false
 
-      - name: Validate generated JSON
+      - name: Save audit output
+        env:
+          NPM_AUDIT_OUTPUT: ${{ steps.npm_audit.outputs.npm_audit }}
         run: |
-          echo "Checking results.json..."
+          printf '%s\n' "$NPM_AUDIT_OUTPUT" > results.json
+
+      - name: Validate generated report
+        run: |
+          echo "Checking generated report..."
           ls -lh results.json
 
           node -e "
           const fs = require('fs');
-          const data = fs.readFileSync('results.json', 'utf8');
-          const report = JSON.parse(data);
+          const r = JSON.parse(fs.readFileSync('results.json', 'utf8'));
 
           console.log('Valid JSON');
-          console.log('auditReportVersion:', report.auditReportVersion);
-          console.log('vulnerabilities:', Object.keys(report.vulnerabilities || {}).length);
-          console.log('metadata:', report.metadata);
+          console.log('Top-level keys:', Object.keys(r));
+          console.log('auditReportVersion:', r.auditReportVersion);
+          console.log(
+            'vulnerabilities:',
+            Object.keys(r.vulnerabilities || {}).length
+          );
+          console.log(JSON.stringify(r.metadata, null, 2));
           "
 
-      - name: Send audit report to challenge listener
+      - name: Send report to AppSecEngineer listener
         run: |
-          curl --fail-with-body -v \
+          curl -v \
             -X POST \
-            -F "file=@results.json;type=application/json" \
+            -H "Content-Type: application/json" \
+            --data-binary @results.json \
             http://35.219.140.99:8880/callback
