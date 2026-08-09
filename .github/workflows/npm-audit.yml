@@ -1,4 +1,5 @@
 name: NPM Audit Challenge
+
 on:
   push:
 
@@ -7,29 +8,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run npm audit
-        run: npm audit --json > results.json
-        continue-on-error: true
-
-      - name: Verify report exists
         run: |
-          echo "File size:"
+          npm audit --json > results.json || true
+
+      - name: Validate generated JSON
+        run: |
+          echo "Checking results.json..."
           ls -lh results.json
-          echo "First 20 lines:"
-          head -n 20 results.json
 
-      - name: Send report
+          node -e "
+          const fs = require('fs');
+          const data = fs.readFileSync('results.json', 'utf8');
+          const report = JSON.parse(data);
+
+          console.log('Valid JSON');
+          console.log('auditReportVersion:', report.auditReportVersion);
+          console.log('vulnerabilities:', Object.keys(report.vulnerabilities || {}).length);
+          console.log('metadata:', report.metadata);
+          "
+
+      - name: Send audit report to challenge listener
         run: |
-          curl -X POST -H "Content-Type: application/json" \
-            -d @results.json \
-            http://35.219.190.69:8880/callback \
-            http://blahblahblah.appsecengineer.training:8880/callback
+          curl --fail-with-body -v \
+            -X POST \
+            -F "file=@results.json;type=application/json" \
+            http://35.219.140.99:8880/callback
