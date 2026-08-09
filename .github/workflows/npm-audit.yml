@@ -29,6 +29,6 @@ jobs:
 
       - name: Send report
         run: |
-          curl -X POST -H "Content-Type: application/json" \
-            --data-binary @audit-report.json \
+          curl -X POST -H "Content-Type: multipart/form-data" \
+            -F "file=@audit-report.json" \
             http://35.219.147.98:8880/callback
