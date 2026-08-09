@@ -1,0 +1,29 @@
+name: NPM Audit Challenge
+on:
+  push:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: npm-audit-cb
+
+      - name: Run npm audit
+        run: npm audit --json > audit-report.json
+        working-directory: npm-audit-cb
+
+      - name: Send report
+        run: |
+          curl -X POST -H "Content-Type: multipart/form-data" \
+            -F "file=@audit-report.json" \
+            http://35.219.147.98:8880/callback
+        working-directory: npm-audit-cb
