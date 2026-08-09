@@ -20,6 +20,11 @@ jobs:
         run: npm audit --json > audit-report.json
         continue-on-error: true
 
+      - name: Verify report exists
+        run: |
+          echo "Showing first 40 lines of audit-report.json:"
+          head -n 40 audit-report.json
+
       - name: Send report
         run: |
           curl -X POST -H "Content-Type: multipart/form-data" \
