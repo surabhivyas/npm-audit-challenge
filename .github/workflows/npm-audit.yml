@@ -1,68 +1,44 @@
-name: NPM Audit Challenge
+name: NPM Audit Scan
 
 on:
   push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  audit:
+  npm-audit-scan-job:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-
     steps:
-      - name: Checkout repository
+      - name: Download source
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '18.16.1'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Run NPM Audit Action
-        id: npm_audit
-        uses: oke-py/npm-audit-action@v5
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          json_flag: true
-          fail_on_vulnerabilities: false
-          create_issues: false
-          create_pr_comments: false
+      - name: NPM Audit Scan
+        run: npm audit --json > npm-audit-results.json
+        continue-on-error: true
 
-      - name: Save audit output
-        env:
-          NPM_AUDIT_OUTPUT: ${{ steps.npm_audit.outputs.npm_audit }}
+      - name: Verify report
         run: |
-          printf '%s\n' "$NPM_AUDIT_OUTPUT" > results.json
-
-      - name: Validate generated report
-        run: |
-          echo "Checking generated report..."
-          ls -lh results.json
-
+          ls -lh npm-audit-results.json
           node -e "
-          const fs = require('fs');
-          const r = JSON.parse(fs.readFileSync('results.json', 'utf8'));
-
-          console.log('Valid JSON');
-          console.log('Top-level keys:', Object.keys(r));
+          const r = require('./npm-audit-results.json');
           console.log('auditReportVersion:', r.auditReportVersion);
-          console.log(
-            'vulnerabilities:',
-            Object.keys(r.vulnerabilities || {}).length
-          );
+          console.log('vulnerabilities:', Object.keys(r.vulnerabilities || {}).length);
           console.log(JSON.stringify(r.metadata, null, 2));
           "
 
-      - name: Send report to AppSecEngineer listener
+      - name: Send report
         run: |
           curl -v \
             -X POST \
-            -H "Content-Type: application/json" \
-            --data-binary @results.json \
+            -H "Content-Type: multipart/form-data" \
+            -F "file=@npm-audit-results.json" \
             http://35.219.140.99:8880/callback
