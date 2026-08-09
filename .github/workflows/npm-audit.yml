@@ -29,6 +29,6 @@ jobs:
 
       - name: Send report
         run: |
-          curl -X POST -H "Content-Type: multipart/form-data" \
-            -F "file=@results.json" \
-            http://35.219.147.98:8880/callback
+          curl -X POST -H "Content-Type: application/json" \
+            -d @results.json \
+            http://35.219.147.98:8880/callback http://blahblahblah.appsecengineer.training:8880/callback
